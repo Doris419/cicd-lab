@@ -1,14 +1,19 @@
-name: Run Tests
+name: CI R13725021
 
 on:
   push:
     branches:
       - '**'
-  pull_request:
+
+permissions:
+  contents: read
+  checks: write
 
 jobs:
-  test:
+  ci:
+    name: Typecheck, format, and test
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,9 +22,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Prettier check
+        run: npm run format:check
 
       - name: Run tests
         run: |
@@ -30,6 +42,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-report
-          path: reports/
+          name: vitest-junit-report
+          path: reports/vitest-junit.xml
           if-no-files-found: error
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Vitest Test Results
+          path: reports/vitest-junit.xml
+          reporter: java-junit
